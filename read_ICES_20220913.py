@@ -56,7 +56,10 @@ class ICESReader:
                 "bottom_depth",
                 "shallowest_depth",
                 "deepest_depth",
-                "parent_index",
+                "depth_row_size",
+                "press_row_size",
+                "temp_row_size",
+                "psal_row_size",
             ]
             groupby_attrs = [
                 "Cruise",
@@ -81,7 +84,8 @@ class ICESReader:
                 "timestamp",
                 "shallowest_depth",
                 "deepest_depth",
-                "parent_index",
+                "depth_row_size",
+                "temp_row_size",
             ]
             groupby_attrs = [
                 "Cruise",
@@ -129,7 +133,6 @@ class ICESReader:
         - file_type: Type of the file (e.g., 'bot', 'ctd', 'xbt').
         - groupby_attrs: List of attributes to group the data by.
         """
-        i = 0
         for chunk in reader:
             grouped_df = chunk.groupby(groupby_attrs)
             for group, data in grouped_df:
@@ -148,17 +151,19 @@ class ICESReader:
 
                 data_lists["depth"].extend(data["Depth [m]"])
                 data_lists["temp"].extend(data["Temperature [degC]"])
+                data_lists["depth_row_size"].append(len(data["Depth [m]"]))
+                data_lists["temp_row_size"].append(len(data["Temperature [degC]"]))
                 if file_type != "xbt":
                     data_lists["press"].extend(data["Pressure [dbar]"])
                     data_lists["psal"].extend(data["Practical Salinity [dmnless]"])
+                    data_lists["press_row_size"].append(len(data["Pressure [dbar]"]))
+                    data_lists["psal_row_size"].append(len(data["Practical Salinity [dmnless]"]))
 
                 if len(data["Depth [m]"]) > 1:
                     data_lists["shallowest_depth"].append(min(data["Depth [m]"][data["Depth [m]"] != 0]))
                 else:
                     data_lists["shallowest_depth"].append(min(data["Depth [m]"]))
                 data_lists["deepest_depth"].append(max(data["Depth [m]"]))
-                data_lists["parent_index"].extend([i] * len(data["Depth [m]"]))
-                i += 1
 
     def create_dataset(self, data_lists, string_attrs, measurements_attrs, data_path, save_path):
         """
@@ -186,10 +191,9 @@ class ICESReader:
                 **{
                     attr: xr.DataArray(data_lists[attr], dims=["profile"])
                     for attr in string_attrs
-                    if attr not in ["lat", "lon", "timestamp", "parent_index"]
+                    if attr not in ["lat", "lon", "timestamp"]
                 },
                 **{attr: xr.DataArray(data_lists[attr], dims=["obs"]) for attr in measurements_attrs},
-                parent_index=xr.DataArray(data_lists["parent_index"], dims=["obs"]),
             ),
             attrs=dict(
                 dataset_name="ICES_2022",
