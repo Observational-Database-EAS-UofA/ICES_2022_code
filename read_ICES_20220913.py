@@ -193,7 +193,7 @@ class ICESReader:
                     for attr in string_attrs
                     if attr not in ["lat", "lon", "timestamp"]
                 },
-                **{attr: xr.DataArray(data_lists[attr], dims=["obs"]) for attr in measurements_attrs},
+                **{attr: xr.DataArray(data_lists[attr], dims=[f"{attr}_obs"]) for attr in measurements_attrs},
             ),
             attrs=dict(
                 dataset_name="ICES_2022",
